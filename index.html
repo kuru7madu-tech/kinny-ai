@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="ta">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="theme-color" content="#1a1a2e">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Groq Chat">
+<link rel="manifest" href="manifest.json">
+<title>Kinny AI Chatbot</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  :root{
+    --bg1:#1a1a2e;--bg2:#16213e;--bg3:#0f3460;
+    --purple:#a29bfe;--blue:#74b9ff;--green:#55efc4;
+    --red:#e17055;--white:#dfe6e9;--muted:#636e72;
+  }
+  html,body{height:100%;overflow:hidden;font-family:'Segoe UI',Arial,sans-serif;background:var(--bg1);color:var(--white)}
+  
+  /* HEADER */
+  #header{
+    display:flex;align-items:center;justify-content:space-between;
+    padding:10px 16px;background:var(--bg2);
+    border-bottom:1px solid #2d3561;
+    min-height:54px;flex-shrink:0;
+  }
+  #header .logo{display:flex;align-items:center;gap:10px}
+  #header .logo img{width:36px;height:36px;border-radius:50%;object-fit:cover;border:2px solid var(--purple)}
+  #header .logo span{font-size:1.1rem;font-weight:700;color:var(--purple)}
+  #clear-btn{
+    background:var(--red);color:#fff;border:none;
+    padding:7px 14px;border-radius:8px;cursor:pointer;
+    font-size:0.85rem;font-weight:600;
+  }
+
+  /* MAIN LAYOUT */
+  #app{display:flex;flex-direction:column;height:100vh}
+  #panels{
+    display:flex;flex:1;overflow:hidden;gap:4px;padding:8px;
+    min-height:0;
+  }
+
+  /* PANELS */
+  .panel{
+    flex:1;display:flex;flex-direction:column;
+    background:var(--bg3);border-radius:12px;overflow:hidden;
+    min-width:0;
+  }
+  .panel-title{
+    text-align:center;padding:8px 4px;font-size:0.85rem;
+    font-weight:700;letter-spacing:.5px;flex-shrink:0;
+    border-bottom:1px solid rgba(255,255,255,0.08);
+  }
+  #q-title{color:var(--blue);background:rgba(116,185,255,0.08)}
+  #a-title{color:var(--purple);background:rgba(162,155,254,0.08)}
+  .panel-body{
+    flex:1;overflow-y:auto;padding:12px;
+    display:flex;flex-direction:column;gap:10px;min-height:0;
+  }
+  .panel-body::-webkit-scrollbar{width:4px}
+  .panel-body::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.15);border-radius:4px}
+
+  /* MESSAGES */
+  .msg-bubble{
+    padding:10px 14px;border-radius:14px;
+    font-size:0.9rem;line-height:1.6;word-break:break-word;
+    animation:fadeIn .3s ease;
+  }
+  @keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
+  .q-bubble{background:rgba(116,185,255,0.12);border:1px solid rgba(116,185,255,0.25);color:var(--blue)}
+  .a-bubble{background:rgba(162,155,254,0.12);border:1px solid rgba(162,155,254,0.25);color:var(--purple)}
+  .thinking{color:var(--muted);font-style:italic;font-size:0.85rem}
+  .dot-anim::after{content:'...';animation:dots 1.2s infinite}
+  @keyframes dots{0%{content:'.'}40%{content:'..'}80%{content:'...'}}
+
+  /* INPUT BAR */
+  #input-bar{
+    display:flex;align-items:center;gap:8px;
+    padding:10px 12px;background:var(--bg2);
+    border-top:1px solid #2d3561;flex-shrink:0;
+  }
+  #msg-input{
+    flex:1;background:var(--bg3);color:var(--white);
+    border:1.5px solid rgba(162,155,254,0.3);border-radius:24px;
+    padding:11px 18px;font-size:1rem;outline:none;
+    transition:border .2s;
+  }
+  #msg-input:focus{border-color:var(--purple)}
+  #msg-input::placeholder{color:var(--muted)}
+  #send-btn{
+    background:linear-gradient(135deg,#6c5ce7,#a29bfe);
+    color:#fff;border:none;border-radius:50%;
+    width:46px;height:46px;cursor:pointer;
+    font-size:1.2rem;display:flex;align-items:center;justify-content:center;
+    flex-shrink:0;transition:transform .15s,opacity .15s;
+  }
+  #send-btn:active{transform:scale(0.92)}
+  #send-btn:disabled{opacity:0.4;cursor:not-allowed}
+
+  /* MOBILE: stack vertically */
+  @media(max-width:600px){
+    #panels{flex-direction:column;gap:4px;padding:6px}
+    .panel{flex:1;min-height:0}
+    #header .logo span{font-size:0.95rem}
+    #msg-input{font-size:0.95rem;padding:10px 14px}
+  }
+
+  /* INSTALL BANNER */
+  #install-banner{
+    display:none;align-items:center;justify-content:space-between;
+    background:#2d3561;padding:8px 14px;font-size:0.82rem;
+    border-bottom:1px solid var(--purple);flex-shrink:0;
+  }
+  #install-banner button{
+    background:var(--purple);color:#1a1a2e;border:none;
+    padding:5px 12px;border-radius:6px;cursor:pointer;font-weight:700;font-size:0.8rem;
+  }
+  #install-banner .close-banner{background:transparent;color:var(--muted);padding:4px 8px}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="install-banner">
+    <span>📱 இந்த app-ஐ install செய்யலாம்!</span>
+    <div style="display:flex;gap:6px">
+      <button id="install-btn">Install</button>
+      <button class="close-banner" onclick="document.getElementById('install-banner').style.display='none'">✕</button>
+    </div>
+  </div>
+
+  <div id="header">
+    <div class="logo">
+      <img id="logo-img" src="icons/avatar.png" onerror="this.style.display='none';document.getElementById('logo-fallback').style.display='flex'" alt="logo">
+      <div id="logo-fallback" style="display:none;width:36px;height:36px;border-radius:50%;background:#6c5ce7;align-items:center;justify-content:center;font-size:1.2rem">🤖</div>
+      <span>Kinny AI Chatbot</span>
+    </div>
+    <button id="clear-btn" onclick="clearAll()">🗑 Clear</button>
+  </div>
+
+  <div id="panels">
+    <div class="panel">
+      <div class="panel-title" id="q-title">📝 கேள்விகள்</div>
+      <div class="panel-body" id="q-panel"></div>
+    </div>
+    <div class="panel">
+      <div class="panel-title" id="a-title">💡 விடைகள்</div>
+      <div class="panel-body" id="a-panel"></div>
+    </div>
+  </div>
+
+  <div id="input-bar">
+    <input id="msg-input" type="text" placeholder="உங்கள் கேள்வியை தட்டச்சு செய்யுங்கள்..." autocomplete="off">
+    <button id="send-btn" onclick="sendMsg()" title="அனுப்பு">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+    </button>
+  </div>
+</div>
+
+<script>
+const GROQ_API_KEY = "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";
+const SYSTEM_PROMPT = `நீ ஒரு உதவியான Tamil AI assistant.
+எப்போதும் தமிழிலேயே பதில் சொல்.
+மரியாதையாகவும் நட்பாகவும் பேசு.
+தொழில்நுட்ப கேள்விகளுக்கு எளிமையாக விளக்கு.`;
+
+let messages = [{role:"system",content:SYSTEM_PROMPT}];
+let deferredPrompt = null;
+
+// PWA install
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); deferredPrompt = e;
+  document.getElementById('install-banner').style.display = 'flex';
+});
+document.getElementById('install-btn').onclick = async () => {
+  if(!deferredPrompt) return;
+  deferredPrompt.prompt();
+  const {outcome} = await deferredPrompt.userChoice;
+  if(outcome==='accepted') document.getElementById('install-banner').style.display='none';
+  deferredPrompt = null;
+};
+
+async function sendMsg() {
+  const input = document.getElementById('msg-input');
+  const text = input.value.trim();
+  if (!text) return;
+  input.value = '';
+  document.getElementById('send-btn').disabled = true;
+
+  addBubble('q-panel', text, 'q-bubble');
+  const thinkId = addBubble('a-panel', 'யோசிக்கிறேன்', 'thinking dot-anim');
+  messages.push({role:"user", content:text});
+
+  try {
+    const res = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      method:"POST",
+      headers:{"Content-Type":"application/json","Authorization":"Bearer "+GROQ_API_KEY},
+      body:JSON.stringify({model:"llama-3.3-70b-versatile",messages,max_tokens:1024})
+    });
+    const data = await res.json();
+    const reply = data.choices?.[0]?.message?.content || "பதில் வரவில்லை.";
+    messages.push({role:"assistant",content:reply});
+    document.getElementById(thinkId).remove();
+    addBubble('a-panel', reply, 'a-bubble');
+  } catch(e) {
+    document.getElementById(thinkId).textContent = "பிழை: "+e.message;
+  }
+  document.getElementById('send-btn').disabled = false;
+  input.focus();
+}
+
+function addBubble(panelId, text, cls) {
+  const panel = document.getElementById(panelId);
+  const div = document.createElement('div');
+  div.className = 'msg-bubble ' + cls;
+  div.textContent = text;
+  const id = 'b' + Date.now();
+  div.id = id;
+  panel.appendChild(div);
+  panel.scrollTop = panel.scrollHeight;
+  return id;
+}
+
+function clearAll() {
+  messages = [{role:"system",content:SYSTEM_PROMPT}];
+  document.getElementById('q-panel').innerHTML = '';
+  document.getElementById('a-panel').innerHTML = '';
+}
+
+document.getElementById('msg-input').addEventListener('keypress', e => {
+  if(e.key==='Enter') sendMsg();
+});
+
+  if('serviceWorker' in navigator){
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('./sw.js');
+    });
+  }
+</script>
+</body>
+</html>
